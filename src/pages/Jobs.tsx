@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import JobCard from "@/components/JobCard";
 import JobFilter from "@/components/JobFilter";
@@ -73,6 +74,7 @@ const mockJobs = [
 ];
 
 const Jobs = () => {
+  const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState({
     search: "",
     profession: "all",
@@ -81,6 +83,14 @@ const Jobs = () => {
     workCondition: "all",
     experience: "all"
   });
+
+  // Handle company filter from URL parameter
+  useEffect(() => {
+    const companyParam = searchParams.get('company');
+    if (companyParam) {
+      setFilters(prev => ({ ...prev, search: companyParam }));
+    }
+  }, [searchParams]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));

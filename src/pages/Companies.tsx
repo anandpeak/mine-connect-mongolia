@@ -118,7 +118,7 @@ const Companies = () => {
 
                 <div className="flex gap-2">
                   <Link 
-                    to={`/company/${company.id}`}
+                    to={`/jobs?company=${company.name}`}
                     className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium text-center hover:bg-primary/90 transition-colors"
                   >
                     Ажлын байрууд

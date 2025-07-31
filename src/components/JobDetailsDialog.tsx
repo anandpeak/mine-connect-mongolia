@@ -114,14 +114,26 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
 
           {/* Tabs for different sections */}
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="details">Дэлгэрэнгүй</TabsTrigger>
-              <TabsTrigger value="location">Байршил</TabsTrigger>
-              <TabsTrigger value="camp">Кемп</TabsTrigger>
-              <TabsTrigger value="ppe">Хангамж</TabsTrigger>
+              <TabsTrigger value="camp">Кемп & Хангамж</TabsTrigger>
             </TabsList>
 
             <TabsContent value="details" className="space-y-4">
+              {/* Location section at the top */}
+              <div>
+                <h3 className="font-medium mb-3">Ажлын байршил - {job.location}</h3>
+                <img 
+                  src={getLocationImage(job.location)} 
+                  alt={`${job.location} байршил`}
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+                <p className="text-sm text-muted-foreground mt-2 mb-6">
+                  {job.location} аймгийн уурхайн бүс
+                </p>
+              </div>
+
+              {/* Job details following */}
               <div>
                 <h3 className="font-medium mb-2">Гүйцэтгэх үндсэн үүрэг</h3>
                 <p className="text-muted-foreground">{job.responsibilities}</p>
@@ -146,21 +158,8 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
               </div>
             </TabsContent>
 
-            <TabsContent value="location" className="space-y-4">
-              <div>
-                <h3 className="font-medium mb-3">Ажлын байршил - {job.location}</h3>
-                <img 
-                  src={getLocationImage(job.location)} 
-                  alt={`${job.location} байршил`}
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-                <p className="text-sm text-muted-foreground mt-2">
-                  {job.location} аймгийн уурхайн бүс
-                </p>
-              </div>
-            </TabsContent>
-
             <TabsContent value="camp" className="space-y-4">
+              {/* Camp information */}
               <div>
                 <h3 className="font-medium mb-3 flex items-center gap-2">
                   <Home className="w-5 h-5" />
@@ -180,7 +179,7 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
                 <div className="mt-4">
                   <h4 className="font-medium mb-2 flex items-center gap-2">
                     <Utensils className="w-4 h-4" />
-                    Хангамж
+                    Кемпийн хангамж
                   </h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li>• Фитнес заалтай</li>
@@ -190,10 +189,9 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
                   </ul>
                 </div>
               </div>
-            </TabsContent>
 
-            <TabsContent value="ppe" className="space-y-4">
-              <div>
+              {/* PPE section */}
+              <div className="mt-6">
                 <h3 className="font-medium mb-3 flex items-center gap-2">
                   <HardHat className="w-5 h-5" />
                   Хамгаалалтын хэрэгсэл
