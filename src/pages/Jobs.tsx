@@ -75,11 +75,11 @@ const mockJobs = [
 const Jobs = () => {
   const [filters, setFilters] = useState({
     search: "",
-    profession: "",
-    location: "",
-    workType: "",
-    workCondition: "",
-    experience: ""
+    profession: "all",
+    location: "all",
+    workType: "all",
+    workCondition: "all",
+    experience: "all"
   });
 
   const handleFilterChange = (key: string, value: string) => {
@@ -89,11 +89,11 @@ const Jobs = () => {
   const handleClearFilters = () => {
     setFilters({
       search: "",
-      profession: "",
-      location: "",
-      workType: "",
-      workCondition: "",
-      experience: ""
+      profession: "all",
+      location: "all",
+      workType: "all",
+      workCondition: "all",
+      experience: "all"
     });
   };
 
@@ -103,11 +103,11 @@ const Jobs = () => {
         job.title.toLowerCase().includes(filters.search.toLowerCase()) ||
         job.company.toLowerCase().includes(filters.search.toLowerCase());
       
-      const matchesProfession = filters.profession === "" || job.profession === filters.profession;
-      const matchesLocation = filters.location === "" || job.location === filters.location;
-      const matchesWorkType = filters.workType === "" || job.workType === filters.workType;
-      const matchesWorkCondition = filters.workCondition === "" || job.workCondition === filters.workCondition;
-      const matchesExperience = filters.experience === "" || job.experience === filters.experience;
+      const matchesProfession = filters.profession === "all" || job.profession === filters.profession;
+      const matchesLocation = filters.location === "all" || job.location === filters.location;
+      const matchesWorkType = filters.workType === "all" || job.workType === filters.workType;
+      const matchesWorkCondition = filters.workCondition === "all" || job.workCondition === filters.workCondition;
+      const matchesExperience = filters.experience === "all" || job.experience === filters.experience;
 
       return matchesSearch && matchesProfession && matchesLocation && 
              matchesWorkType && matchesWorkCondition && matchesExperience;

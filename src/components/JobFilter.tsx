@@ -65,7 +65,7 @@ const JobFilter = ({ filters, onFilterChange, onClearFilters }: JobFilterProps) 
             <SelectValue placeholder="Мэргэжил" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Бүх мэргэжил</SelectItem>
+            <SelectItem value="all">Бүх мэргэжил</SelectItem>
             {professions.map((profession) => (
               <SelectItem key={profession} value={profession}>
                 {profession}
@@ -79,7 +79,7 @@ const JobFilter = ({ filters, onFilterChange, onClearFilters }: JobFilterProps) 
             <SelectValue placeholder="Байршил" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Бүх байршил</SelectItem>
+            <SelectItem value="all">Бүх байршил</SelectItem>
             {locations.map((location) => (
               <SelectItem key={location} value={location}>
                 {location}
@@ -93,7 +93,7 @@ const JobFilter = ({ filters, onFilterChange, onClearFilters }: JobFilterProps) 
             <SelectValue placeholder="Ажлын цаг" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Бүх төрөл</SelectItem>
+            <SelectItem value="all">Бүх төрөл</SelectItem>
             {workTypes.map((type) => (
               <SelectItem key={type} value={type}>
                 {type}
@@ -107,7 +107,7 @@ const JobFilter = ({ filters, onFilterChange, onClearFilters }: JobFilterProps) 
             <SelectValue placeholder="Ажлын нөхцөл" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Бүх нөхцөл</SelectItem>
+            <SelectItem value="all">Бүх нөхцөл</SelectItem>
             {workConditions.map((condition) => (
               <SelectItem key={condition} value={condition}>
                 {condition}
@@ -122,7 +122,7 @@ const JobFilter = ({ filters, onFilterChange, onClearFilters }: JobFilterProps) 
               <SelectValue placeholder="Туршлага" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Бүх туршлага</SelectItem>
+              <SelectItem value="all">Бүх туршлага</SelectItem>
               {experiences.map((exp) => (
                 <SelectItem key={exp} value={exp}>
                   {exp}
