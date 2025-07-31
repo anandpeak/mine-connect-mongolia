@@ -1,12 +1,11 @@
 // src/components/JobDetailsDialog.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Clock, Building2, Phone, Banknote, HardHat, Home, Utensils, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useVacancyDetail } from "@/hooks/useVacancies";
 
 interface JobDetailsDialogProps {
   job: {
@@ -33,15 +32,90 @@ interface JobDetailsDialogProps {
 }
 
 const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) => {
-  const [hasProfile] = useState(Math.random() > 0.5); // Mock profile check
+  const [hasProfile] = useState(Math.random() > 0.5);
+  const [detailedJob, setDetailedJob] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  
-  // Fetch detailed vacancy information
-  const { 
-    data: detailedJob, 
-    isLoading, 
-    error 
-  } = useVacancyDetail(job.id);
+
+  // Helper function to parse XML
+  const parseXML = (xmlString: string): any => {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+    
+    const xmlToObj = (node: Element): any => {
+      const result: any = {};
+      
+      for (let i = 0; i < node.children.length; i++) {
+        const child = node.children[i];
+        const tagName = child.tagName;
+        
+        if (child.children.length > 0) {
+          if (tagName === 'supplies' && child.children.length > 0) {
+            result[tagName] = Array.from(child.children).map(c => xmlToObj(c as Element));
+          } else {
+            result[tagName] = xmlToObj(child);
+          }
+        } else {
+          result[tagName] = child.textContent || '';
+        }
+      }
+      
+      return result;
+    };
+    
+    return xmlToObj(xmlDoc.documentElement);
+  };
+
+  // Helper function to clean HTML tags
+  const cleanHtmlTags = (html: string): string => {
+    if (!html) return '';
+    return html.replace(/<[^>]*>/g, '').trim();
+  };
+
+  // Fetch detailed job information when dialog opens
+  useEffect(() => {
+    if (open && job.id) {
+      setIsLoading(true);
+      setError(null);
+      
+      fetch(`https://oneplace-hr-326159028339.asia-southeast1.run.app/v1/vacancy/get-detail?id=${job.id}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json(); // Changed from .text() to .json()
+        })
+        .then(data => {
+          console.log('Detail API Response:', data);
+          
+          // Transform the JSON data
+          const transformedData = {
+            ...job, // Keep original job data as fallback
+            id: data.id?.toString() || job.id,
+            title: data.title || job.title,
+            company: data.cname || data.companyName || job.company,
+            location: data.aimagName || data.location || job.location,
+            phone: data.phoneNumber || data.phone || job.phone || '',
+            responsibilities: cleanHtmlTags(data.responsibility) || 'Дэлгэрэнгүй үүрэг тодорхойлогдоогүй',
+            requirements: cleanHtmlTags(data.requirement) || 'Шаардлага тодорхойлогдоогүй',
+            additionalInfo: data.campInfo || data.additionalInfo || job.additionalInfo || '',
+            workCondition: data.workRange === 'onsite' ? 'Уурхай' : (data.workRange || job.workCondition),
+            hasCamp: !!data.campInfo || !!data.hasCamp,
+            supplies: data.supplies || [],
+            _raw: data
+          };
+          
+          setDetailedJob(transformedData);
+          setIsLoading(false);
+        })
+        .catch(error => {
+          console.error('Error fetching job details:', error);
+          setError('Дэлгэрэнгүй мэдээллийг ачаалахад алдаа гарлаа');
+          setIsLoading(false);
+        });
+    }
+  }, [open, job.id]);
 
   // Use detailed data if available, fallback to basic job data
   const jobData = detailedJob || job;
@@ -65,7 +139,6 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
     window.open('https://your-ai-interview-link.com', '_blank');
   };
 
-  // Mock location image based on job.location
   const getLocationImage = (location: string) => {
     const locationImages = {
       'Өвөрхангай': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
@@ -76,12 +149,10 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
     return locationImages[location as keyof typeof locationImages] || 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=400&h=200&fit=crop';
   };
 
-  const getCampImages = () => {
-    return [
-      "https://images.unsplash.com/photo-1500673922987-e212871fec22?w=300&h=200&fit=crop",
-      "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?w=300&h=200&fit=crop"
-    ];
-  };
+  const getCampImages = () => [
+    "https://images.unsplash.com/photo-1500673922987-e212871fec22?w=300&h=200&fit=crop",
+    "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?w=300&h=200&fit=crop"
+  ];
 
   const getPPEItems = () => [
     { name: "Каск", icon: "👷" },
@@ -90,20 +161,6 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
     { name: "Бээлий", icon: "🧤" },
     { name: "Ажлын гутал", icon: "👞" }
   ];
-
-  const formatCreatedDate = (dateString?: string) => {
-    if (!dateString) return 'Тодорхойгүй';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('mn-MN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return 'Тодорхойгүй';
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -121,7 +178,7 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
           </div>
         ) : error ? (
           <div className="text-center py-12">
-            <p className="text-destructive">Дэлгэрэнгүй мэдээллийг ачаалахад алдаа гарлаа</p>
+            <p className="text-destructive">{error}</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -158,7 +215,6 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
               )}
             </div>
 
-            {/* Tabs for different sections */}
             <Tabs defaultValue="details" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="details">Дэлгэрэнгүй</TabsTrigger>
@@ -166,7 +222,6 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
               </TabsList>
 
               <TabsContent value="details" className="space-y-4">
-                {/* Location section at the top */}
                 <div>
                   <h3 className="font-medium mb-3">Ажлын байршил - {jobData.location}</h3>
                   <img 
@@ -179,22 +234,17 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
                   </p>
                 </div>
 
-                {/* Job details */}
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-medium mb-2">Гүйцэтгэх үндсэн үүрэг</h3>
                     <p className="text-muted-foreground">
-                      {jobData.responsibilities && jobData.responsibilities !== 'Дэлгэрэнгүй мэдээллийг харах товчийг дарна уу' 
-                        ? jobData.responsibilities 
-                        : `${jobData.title} байрны үндсэн үүрэг болох тоног төхөөрөмжийн ашиглалт, аюулгүй байдлын дүрмийг дагаж мөрдөх, өдөр тутмын тайланг бэлтгэх зэрэг үүрэг гүйцэтгэнэ.`}
+                      {jobData.responsibilities}
                     </p>
                   </div>
                   <div>
                     <h3 className="font-medium mb-2">Ажлын байранд тавигдах шаардлага</h3>
                     <p className="text-muted-foreground">
-                      {jobData.requirements && jobData.requirements !== 'Дэлгэрэнгүй мэдээллийг харах товчийг дарна уу'
-                        ? jobData.requirements
-                        : `Техникийн дээд боловсрол эсвэл ижил төстэй туршлага, багаар ажиллах чадвар, аюулгүй байдлын дүрмийг мөрдөх хариуцлагатай хандлага шаардлагатай.`}
+                      {jobData.requirements}
                     </p>
                   </div>
                   {jobData.additionalInfo && (
@@ -218,15 +268,14 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
                       <p className="text-muted-foreground">{jobData.workType}</p>
                     </div>
                     <div>
-                      <span className="font-medium">Нийтлэгдсэн:</span>
-                      <p className="text-muted-foreground">{formatCreatedDate(jobData.createdDate)}</p>
+                      <span className="font-medium">Утас:</span>
+                      <p className="text-muted-foreground">{jobData.phone || 'Тодорхойгүй'}</p>
                     </div>
                   </div>
                 </div>
               </TabsContent>
 
               <TabsContent value="camp" className="space-y-4">
-                {/* Camp information */}
                 <div>
                   <h3 className="font-medium mb-3 flex items-center gap-2">
                     <Home className="w-5 h-5" />
@@ -267,7 +316,6 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
                   )}
                 </div>
 
-                {/* PPE section */}
                 <div className="mt-6">
                   <h3 className="font-medium mb-3 flex items-center gap-2">
                     <HardHat className="w-5 h-5" />
@@ -288,7 +336,6 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
               </TabsContent>
             </Tabs>
 
-            {/* Action Buttons */}
             <div className="flex gap-3 pt-4 border-t">
               <Button 
                 onClick={handleApply}
