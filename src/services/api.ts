@@ -28,44 +28,20 @@ export interface VacancyDetail extends Vacancy {
   applicationDeadline?: string;
 }
 
-// Helper function to parse XML to JavaScript object
-const parseXML = (xmlString: string): any => {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
-  
-  const xmlToObj = (node: Element): any => {
-    const result: any = {};
-    
-    // Handle child elements
-    for (let i = 0; i < node.children.length; i++) {
-      const child = node.children[i];
-      const tagName = child.tagName;
-      
-      if (child.children.length > 0) {
-        // If has children, recursively parse
-        if (tagName === 'supplies' && child.children.length > 0) {
-          // Special handling for supplies array
-          result[tagName] = Array.from(child.children).map(c => xmlToObj(c as Element));
-        } else {
-          result[tagName] = xmlToObj(child);
-        }
-      } else {
-        // If no children, get text content
-        result[tagName] = child.textContent || '';
-      }
-    }
-    
-    return result;
-  };
-  
-  return xmlToObj(xmlDoc.documentElement);
-};
-
-// Helper function to clean HTML tags from text
-const cleanHtmlTags = (html: string): string => {
-  if (!html) return '';
-  return html.replace(/<[^>]*>/g, '').trim();
-};
+export interface Company {
+  id: string;
+  name: string;
+  location: string;
+  description: string;
+  employees: string;
+  openPositions: number;
+  industry: string;
+  website: string;
+  photoUrl?: string;
+  email?: string;
+  // Add other fields as they come from the API
+  [key: string]: any;
+}
 
 // Helper function to format salary
 const formatSalary = (minSalary?: number, maxSalary?: number): string => {
@@ -120,6 +96,12 @@ const formatRoster = (roster: string): string => {
   return roster;
 };
 
+// Helper function to clean HTML tags from text
+const cleanHtmlTags = (html: string): string => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+};
+
 // Get all open vacancies
 export const getAllVacancies = async (): Promise<Vacancy[]> => {
   try {
@@ -156,6 +138,7 @@ export const getAllVacancies = async (): Promise<Vacancy[]> => {
         hasSent: item.hasSent,
         minSalary: item.minSalary,
         maxSalary: item.maxSalary,
+        cphotoUrl: item.cphotoUrl,
         // Keep original data for reference
         _raw: item
       }));
@@ -178,34 +161,30 @@ export const getVacancyDetail = async (id: number): Promise<VacancyDetail | null
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    // Get XML response as text
-    const xmlText = await response.text();
-    console.log('Raw XML Response:', xmlText);
-    
-    // Parse XML to JavaScript object
-    const data = parseXML(xmlText);
-    console.log('Parsed Detail Data:', data);
+    // Get JSON response
+    const data = await response.json();
+    console.log('Vacancy Detail Response:', data);
     
     return {
       id: data.id?.toString() || id.toString(),
       title: data.title || 'Тодорхойгүй ажил',
-      company: data.cname || 'Тодорхойгүй компани', // XML uses "cname" for company name
-      location: data.aimagName || 'Тодорхойгүй байршил', // XML uses "aimagName"
-      workType: formatWorkTime(data.workTime), // XML uses "workTime"
-      roster: formatRoster(data.roster), // XML has "roster"
-      experience: 'Туршлага шаардахгүй', // Not specified in XML
-      profession: 'Уурхайчин', // Default profession
-      workCondition: formatWorkRange(data.workRange), // XML uses "workRange"
-      responsibilities: cleanHtmlTags(data.responsibility) || 'Дэлгэрэнгүй үүрэг тодорхойлогдоогүй', // XML uses "responsibility"
-      requirements: cleanHtmlTags(data.requirement) || 'Шаардлага тодорхойлогдоогүй', // XML uses "requirement" 
-      additionalInfo: data.campInfo || '',
-      phone: data.phoneNumber || '', // XML uses "phoneNumber"
+      company: data.cname || data.companyName || 'Тодорхойгүй компани',
+      location: data.aimagName || data.location || 'Тодорхойгүй байршил',
+      workType: formatWorkTime(data.workTime),
+      roster: formatRoster(data.roster),
+      experience: data.experience || data.experienceRequired || 'Туршлага шаардахгүй',
+      profession: data.profession || data.category || 'Уурхайчин',
+      workCondition: formatWorkRange(data.workRange),
+      responsibilities: cleanHtmlTags(data.responsibility) || 'Дэлгэрэнгүй үүрэг тодорхойлогдоогүй',
+      requirements: cleanHtmlTags(data.requirement) || 'Шаардлага тодорхойлогдоогүй',
+      additionalInfo: data.campInfo || data.additionalInfo || '',
+      phone: data.phoneNumber || data.phone || '',
       salary: formatSalary(parseInt(data.minSalary) || 0, parseInt(data.maxSalary) || 0),
       supply: data.supplies?.length > 0 ? 'Хангамжтай' : '',
       description: cleanHtmlTags(data.responsibility) || '',
       benefits: data.campInfo || '',
       applicationDeadline: '',
-      // Keep additional XML fields
+      // Keep additional fields
       companyId: data.companyId,
       locationId: data.locationId,
       mapName: data.mapName,
@@ -213,7 +192,7 @@ export const getVacancyDetail = async (id: number): Promise<VacancyDetail | null
       supplies: data.supplies,
       images: data.images,
       workRange: data.workRange,
-      hasSent: data.hasSent === 'true',
+      hasSent: data.hasSent === 'true' || data.hasSent === true,
       cphotoUrl: data.cphotoUrl,
       cemail: data.cemail,
       // Keep original data for reference
@@ -222,6 +201,132 @@ export const getVacancyDetail = async (id: number): Promise<VacancyDetail | null
     
   } catch (error) {
     console.error('Error fetching vacancy detail:', error);
+    return null;
+  }
+};
+
+// Get companies from vacancies data (since we might not have a separate companies endpoint)
+export const getCompaniesFromVacancies = async (): Promise<Company[]> => {
+  try {
+    const vacancies = await getAllVacancies();
+    
+    // Group vacancies by company
+    const companiesMap = new Map<string, Company>();
+    
+    vacancies.forEach((vacancy: Vacancy) => {
+      const companyKey = vacancy.company;
+      
+      if (companiesMap.has(companyKey)) {
+        // Update existing company
+        const existingCompany = companiesMap.get(companyKey)!;
+        existingCompany.openPositions += 1;
+        
+        // Update location if current company location is more specific
+        if (vacancy.location && vacancy.location !== 'Тодорхойгүй байршил') {
+          existingCompany.location = vacancy.location;
+        }
+        
+        // Update photo URL if available
+        if (vacancy.cphotoUrl && !existingCompany.photoUrl) {
+          existingCompany.photoUrl = vacancy.cphotoUrl;
+        }
+      } else {
+        // Create new company entry
+        const company: Company = {
+          id: `company-${companiesMap.size + 1}`,
+          name: vacancy.company,
+          location: vacancy.location,
+          description: `${vacancy.company} компани нь уул уурхайн салбарт үйл ажиллагаа явуулдаг.`,
+          employees: "500+", // Default since we don't have this data
+          openPositions: 1,
+          industry: "Уул уурхай",
+          website: `https://${vacancy.company.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.mn`,
+          photoUrl: vacancy.cphotoUrl || vacancy.photoUrl || '',
+          email: '',
+          // Keep original vacancy data for reference
+          _rawVacancy: vacancy
+        };
+        
+        companiesMap.set(companyKey, company);
+      }
+    });
+    
+    return Array.from(companiesMap.values()).sort((a, b) => b.openPositions - a.openPositions);
+    
+  } catch (error) {
+    console.error('Error fetching companies from vacancies:', error);
+    return [];
+  }
+};
+
+// Try to get companies from a dedicated endpoint (if it exists)
+export const getCompanies = async (): Promise<Company[]> => {
+  try {
+    // First, try a potential companies endpoint
+    const response = await fetch(`${API_BASE_URL}/company/get-all`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Companies API Response:', data);
+      
+      // Transform the API response if it exists
+      if (Array.isArray(data)) {
+        return data.map((item: any) => ({
+          id: item.id?.toString() || item.companyId?.toString() || `company-${Math.random()}`,
+          name: item.name || item.companyName || 'Тодорхойгүй компани',
+          location: item.location || item.aimagName || 'Тодорхойгүй байршил',
+          description: item.description || `${item.name} - уул уурхайн салбарын компани`,
+          employees: item.employees || item.employeeCount || '500+',
+          openPositions: item.openPositions || item.vacancyCount || 0,
+          industry: item.industry || item.sector || 'Уул уурхай',
+          website: item.website || item.url || `https://${item.name?.toLowerCase().replace(/\s+/g, '') || 'company'}.mn`,
+          photoUrl: item.photoUrl || item.logo || item.cphotoUrl || '',
+          email: item.email || item.cemail || '',
+          _raw: item
+        }));
+      }
+    }
+    
+    // If companies endpoint doesn't exist, fall back to deriving from vacancies
+    console.log('Companies endpoint not found, deriving from vacancies...');
+    return await getCompaniesFromVacancies();
+    
+  } catch (error) {
+    console.error('Error fetching companies, falling back to vacancies:', error);
+    return await getCompaniesFromVacancies();
+  }
+};
+
+// Get company details by ID
+export const getCompanyDetail = async (id: string): Promise<Company | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/company/get-detail?id=${id}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Company Detail Response:', data);
+      
+      return {
+        id: data.id?.toString() || id,
+        name: data.name || data.companyName || 'Тодорхойгүй компани',
+        location: data.location || data.aimagName || 'Тодорхойгүй байршил',
+        description: data.description || `${data.name} - уул уурхайн салбарын компани`,
+        employees: data.employees || data.employeeCount || '500+',
+        openPositions: data.openPositions || data.vacancyCount || 0,
+        industry: data.industry || data.sector || 'Уул уурхай',
+        website: data.website || data.url || '',
+        photoUrl: data.photoUrl || data.logo || data.cphotoUrl || '',
+        email: data.email || data.cemail || '',
+        _raw: data
+      };
+    }
+    
+    // If company detail endpoint doesn't exist, try to find in companies list
+    const companies = await getCompanies();
+    return companies.find(company => company.id === id) || null;
+    
+  } catch (error) {
+    console.error('Error fetching company detail:', error);
     return null;
   }
 };
