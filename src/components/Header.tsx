@@ -1,5 +1,5 @@
+// src/components/Header.tsx
 import { Link, useLocation } from "react-router-dom";
-import { Pickaxe } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Header = () => {
@@ -8,7 +8,7 @@ const Header = () => {
   const navItems = [
     { path: "/", label: "Ажлын байр" },
     { path: "/companies", label: "Компаниуд" },
-    { path: "/profile", label: "Миний хувь хэрэг" },
+    { path: "/profile", label: "Миний анкет" },
   ];
 
   return (
@@ -16,13 +16,35 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-              <Pickaxe className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Uurkhaichin.mn</h1>
-              <p className="text-xs text-muted-foreground">Building Careers. Building Mongolia</p>
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/uurkhaichin-logo-black.svg" 
+              alt="Uurkhaichin.mn Logo" 
+              className="w-48 h-48 object-contain"
+              onError={(e) => {
+                // Fallback to a simple mining icon if logo fails to load
+                console.log('Logo failed to load, using fallback');
+                (e.target as HTMLImageElement).style.display = 'none';
+                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+              }}
+            />
+            {/* Fallback icon (hidden by default) */}
+            <div className="w-32 h-32 bg-primary rounded flex items-center justify-center hidden">
+              <svg 
+                width="40" 
+                height="40" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className="text-primary-foreground"
+              >
+                <path d="M6 3h12l4 6-10 13L2 9l4-6z"/>
+                <path d="M11 3 8 9l4 13 4-13-3-6"/>
+                <path d="M2 9h20"/>
+              </svg>
             </div>
           </Link>
 
