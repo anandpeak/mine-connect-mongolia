@@ -54,7 +54,7 @@ export const useVacanciesByCompany = (companyName: string) => {
 export const useCompanies = () => {
   return useQuery({
     queryKey: ['companies'],
-    queryFn: getCompanies,
+queryFn: getCompaniesFromVacancies,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     retry: 3,

@@ -83,14 +83,14 @@ const formatWorkRange = (workRange: string): string => {
   }
 };
 
-// Helper function to format roster
+// Helper function to format roster - UPDATED to remove explanation
 const formatRoster = (roster: string): string => {
-  if (!roster) return 'Стандарт цагийн хуваарь';
+  if (!roster) return 'Стандарт';
   
-  // If it's in format "14/14", convert to readable format
+  // If it's in format "14/14", just return it as is without explanation
   if (roster.includes('/')) {
-    const [work, rest] = roster.split('/');
-    return `${work}/${rest} (${work} хоног ажил, ${rest} хоног амралт)`;
+    const match = roster.match(/(\d+\/\d+)/);
+    return match ? match[1] : roster;
   }
   
   return roster;
@@ -121,7 +121,7 @@ export const getAllVacancies = async (): Promise<Vacancy[]> => {
         company: item.name || 'Тодорхойгүй компани', // API uses "name" for company
         location: item.aimagName || 'Тодорхойгүй байршил', // API uses "aimagName" for location
         workType: formatWorkTime(item.workTime), // API uses "workTime"
-        roster: formatRoster(item.roster), // API has "roster" field
+        roster: formatRoster(item.roster), // API has "roster" field - now cleaned
         experience: 'Туршлага шаардахгүй', // Not in basic API response
         profession: 'Уурхайчин', // Default since not in basic response
         workCondition: item.hasCamp ? 'Кемптэй' : 'Уурхай', // Use camp info
@@ -138,7 +138,7 @@ export const getAllVacancies = async (): Promise<Vacancy[]> => {
         hasSent: item.hasSent,
         minSalary: item.minSalary,
         maxSalary: item.maxSalary,
-        cphotoUrl: item.cphotoUrl,
+        cphotoUrl: item.cphotoUrl, // Company logo URL
         // Keep original data for reference
         _raw: item
       }));
@@ -171,7 +171,7 @@ export const getVacancyDetail = async (id: number): Promise<VacancyDetail | null
       company: data.cname || data.companyName || 'Тодорхойгүй компани',
       location: data.aimagName || data.location || 'Тодорхойгүй байршил',
       workType: formatWorkTime(data.workTime),
-      roster: formatRoster(data.roster),
+      roster: formatRoster(data.roster), // Updated formatting
       experience: data.experience || data.experienceRequired || 'Туршлага шаардахгүй',
       profession: data.profession || data.category || 'Уурхайчин',
       workCondition: formatWorkRange(data.workRange),
@@ -205,7 +205,7 @@ export const getVacancyDetail = async (id: number): Promise<VacancyDetail | null
   }
 };
 
-// Get companies from vacancies data (since we might not have a separate companies endpoint)
+// Get companies from vacancies data (primary method)
 export const getCompaniesFromVacancies = async (): Promise<Company[]> => {
   try {
     const vacancies = await getAllVacancies();
@@ -226,7 +226,7 @@ export const getCompaniesFromVacancies = async (): Promise<Company[]> => {
           existingCompany.location = vacancy.location;
         }
         
-        // Update photo URL if available
+        // Update photo URL if available and not already set
         if (vacancy.cphotoUrl && !existingCompany.photoUrl) {
           existingCompany.photoUrl = vacancy.cphotoUrl;
         }
@@ -251,79 +251,62 @@ export const getCompaniesFromVacancies = async (): Promise<Company[]> => {
       }
     });
     
-    return Array.from(companiesMap.values()).sort((a, b) => b.openPositions - a.openPositions);
+    return Array.from(companiesMap.values()).sort((a, b) => 
+      b.openPositions - a.openPositions
+    );
     
   } catch (error) {
-    console.error('Error fetching companies from vacancies:', error);
+    console.error('Error creating companies from vacancies:', error);
     return [];
   }
 };
 
-// Try to get companies from a dedicated endpoint (if it exists)
+// Main companies function - use getCompaniesFromVacancies by default to avoid 403 error
 export const getCompanies = async (): Promise<Company[]> => {
-  try {
-    // First, try a potential companies endpoint
-    const response = await fetch(`${API_BASE_URL}/company/get-all`);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('Companies API Response:', data);
-      
-      // Transform the API response if it exists
-      if (Array.isArray(data)) {
-        return data.map((item: any) => ({
-          id: item.id?.toString() || item.companyId?.toString() || `company-${Math.random()}`,
-          name: item.name || item.companyName || 'Тодорхойгүй компани',
-          location: item.location || item.aimagName || 'Тодорхойгүй байршил',
-          description: item.description || `${item.name} - уул уурхайн салбарын компани`,
-          employees: item.employees || item.employeeCount || '500+',
-          openPositions: item.openPositions || item.vacancyCount || 0,
-          industry: item.industry || item.sector || 'Уул уурхай',
-          website: item.website || item.url || `https://${item.name?.toLowerCase().replace(/\s+/g, '') || 'company'}.mn`,
-          photoUrl: item.photoUrl || item.logo || item.cphotoUrl || '',
-          email: item.email || item.cemail || '',
-          _raw: item
-        }));
-      }
-    }
-    
-    // If companies endpoint doesn't exist, fall back to deriving from vacancies
-    console.log('Companies endpoint not found, deriving from vacancies...');
-    return await getCompaniesFromVacancies();
-    
-  } catch (error) {
-    console.error('Error fetching companies, falling back to vacancies:', error);
-    return await getCompaniesFromVacancies();
-  }
+  // Skip the problematic companies endpoint that returns 403
+  // Use getCompaniesFromVacancies as the primary method
+  console.log('Getting companies from vacancies data...');
+  return await getCompaniesFromVacancies();
 };
 
 // Get company details by ID
 export const getCompanyDetail = async (id: string): Promise<Company | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/company/get-detail?id=${id}`);
+    // Try to find company in the companies list first
+    const companies = await getCompanies();
+    const company = companies.find(company => company.id === id);
     
-    if (response.ok) {
-      const data = await response.json();
-      console.log('Company Detail Response:', data);
-      
-      return {
-        id: data.id?.toString() || id,
-        name: data.name || data.companyName || 'Тодорхойгүй компани',
-        location: data.location || data.aimagName || 'Тодорхойгүй байршил',
-        description: data.description || `${data.name} - уул уурхайн салбарын компани`,
-        employees: data.employees || data.employeeCount || '500+',
-        openPositions: data.openPositions || data.vacancyCount || 0,
-        industry: data.industry || data.sector || 'Уул уурхай',
-        website: data.website || data.url || '',
-        photoUrl: data.photoUrl || data.logo || data.cphotoUrl || '',
-        email: data.email || data.cemail || '',
-        _raw: data
-      };
+    if (company) {
+      return company;
     }
     
-    // If company detail endpoint doesn't exist, try to find in companies list
-    const companies = await getCompanies();
-    return companies.find(company => company.id === id) || null;
+    // If not found, try the detail endpoint (might also return 403)
+    try {
+      const response = await fetch(`${API_BASE_URL}/company/get-detail?id=${id}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Company Detail Response:', data);
+        
+        return {
+          id: data.id?.toString() || id,
+          name: data.name || data.companyName || 'Тодорхойгүй компани',
+          location: data.location || data.aimagName || 'Тодорхойгүй байршил',
+          description: data.description || `${data.name} - уул уурхайн салбарын компани`,
+          employees: data.employees || data.employeeCount || '500+',
+          openPositions: data.openPositions || data.vacancyCount || 0,
+          industry: data.industry || data.sector || 'Уул уурхай',
+          website: data.website || data.url || '',
+          photoUrl: data.photoUrl || data.logo || data.cphotoUrl || '',
+          email: data.email || data.cemail || '',
+          _raw: data
+        };
+      }
+    } catch (detailError) {
+      console.log('Company detail endpoint also not available, using companies list only');
+    }
+    
+    return null;
     
   } catch (error) {
     console.error('Error fetching company detail:', error);

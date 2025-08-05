@@ -14,8 +14,7 @@ const Jobs = () => {
     profession: "all",
     location: "all",
     workType: "all",
-    workCondition: "all",
-    experience: "all"
+    sortBy: "newest" // New sort filter, removed workCondition and experience
   });
 
   // Fetch vacancies using React Query
@@ -49,13 +48,37 @@ const Jobs = () => {
       profession: "all",
       location: "all",
       workType: "all",
-      workCondition: "all",
-      experience: "all"
+      sortBy: "newest"
     });
   };
 
-  const filteredJobs = useMemo(() => {
-    return vacancies.filter((job: Vacancy) => {
+  // Helper function to extract salary number for sorting
+  const extractSalaryNumber = (salary: string): number => {
+    if (!salary || salary === 'Тохиролцоно') return 0;
+    
+    // Extract numbers from salary string like "1,500,000₮ - 2,000,000₮"
+    const numbers = salary.match(/[\d,]+/g);
+    if (!numbers || numbers.length === 0) return 0;
+    
+    // Use the first number (minimum salary) for sorting
+    const minSalary = numbers[0].replace(/,/g, '');
+    return parseInt(minSalary) || 0;
+  };
+
+  // Helper function to parse date for sorting
+  const parseDateForSorting = (dateString?: string): number => {
+    if (!dateString) return 0;
+    
+    try {
+      return new Date(dateString).getTime();
+    } catch {
+      return 0;
+    }
+  };
+
+  const filteredAndSortedJobs = useMemo(() => {
+    // First filter the jobs
+    let filtered = vacancies.filter((job: Vacancy) => {
       const matchesSearch = filters.search === "" || 
         job.title.toLowerCase().includes(filters.search.toLowerCase()) ||
         job.company.toLowerCase().includes(filters.search.toLowerCase());
@@ -63,12 +86,31 @@ const Jobs = () => {
       const matchesProfession = filters.profession === "all" || job.profession === filters.profession;
       const matchesLocation = filters.location === "all" || job.location === filters.location;
       const matchesWorkType = filters.workType === "all" || job.workType === filters.workType;
-      const matchesWorkCondition = filters.workCondition === "all" || job.workCondition === filters.workCondition;
-      const matchesExperience = filters.experience === "all" || job.experience === filters.experience;
 
-      return matchesSearch && matchesProfession && matchesLocation && 
-             matchesWorkType && matchesWorkCondition && matchesExperience;
+      return matchesSearch && matchesProfession && matchesLocation && matchesWorkType;
     });
+
+    // Then sort the filtered results
+    switch (filters.sortBy) {
+      case 'oldest':
+        filtered.sort((a, b) => parseDateForSorting(a.createdDate) - parseDateForSorting(b.createdDate));
+        break;
+      case 'salary-high':
+        filtered.sort((a, b) => extractSalaryNumber(b.salary) - extractSalaryNumber(a.salary));
+        break;
+      case 'salary-low':
+        filtered.sort((a, b) => extractSalaryNumber(a.salary) - extractSalaryNumber(b.salary));
+        break;
+      case 'company':
+        filtered.sort((a, b) => a.company.localeCompare(b.company, 'mn'));
+        break;
+      case 'newest':
+      default:
+        filtered.sort((a, b) => parseDateForSorting(b.createdDate) - parseDateForSorting(a.createdDate));
+        break;
+    }
+
+    return filtered;
   }, [vacancies, filters]);
 
   // Loading state
@@ -118,7 +160,7 @@ const Jobs = () => {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground mb-2">Ажлын байрнууд</h1>
           <p className="text-muted-foreground">
-            Уул уурхайн салбарын {filteredJobs.length} ажлын байр
+            Уул уурхайн салбарын {filteredAndSortedJobs.length} ажлын байр
           </p>
         </div>
 
@@ -129,8 +171,8 @@ const Jobs = () => {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredJobs.length > 0 ? (
-            filteredJobs.map((job: Vacancy) => (
+          {filteredAndSortedJobs.length > 0 ? (
+            filteredAndSortedJobs.map((job: Vacancy) => (
               <JobCard key={job.id} job={job} />
             ))
           ) : (
@@ -141,7 +183,7 @@ const Jobs = () => {
                   : "Хайлтын шалгуурт тохирох ажлын байр олдсонгүй"
                 }
               </p>
-              {filteredJobs.length === 0 && vacancies.length > 0 && (
+              {filteredAndSortedJobs.length === 0 && vacancies.length > 0 && (
                 <button 
                   onClick={handleClearFilters}
                   className="text-primary hover:underline mt-2"
