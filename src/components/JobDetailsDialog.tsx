@@ -38,39 +38,16 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Helper function to parse XML
-  const parseXML = (xmlString: string): any => {
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
-    
-    const xmlToObj = (node: Element): any => {
-      const result: any = {};
-      
-      for (let i = 0; i < node.children.length; i++) {
-        const child = node.children[i];
-        const tagName = child.tagName;
-        
-        if (child.children.length > 0) {
-          if (tagName === 'supplies' && child.children.length > 0) {
-            result[tagName] = Array.from(child.children).map(c => xmlToObj(c as Element));
-          } else {
-            result[tagName] = xmlToObj(child);
-          }
-        } else {
-          result[tagName] = child.textContent || '';
-        }
-      }
-      
-      return result;
-    };
-    
-    return xmlToObj(xmlDoc.documentElement);
-  };
-
   // Helper function to clean HTML tags
   const cleanHtmlTags = (html: string): string => {
     if (!html) return '';
     return html.replace(/<[^>]*>/g, '').trim();
+  };
+
+  // Get location image
+  const getLocationImage = (location: string) => {
+    // Default mining landscape image
+    return "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=400&fit=crop&crop=center";
   };
 
   // Fetch detailed job information when dialog opens
@@ -84,14 +61,13 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-          return response.json(); // Changed from .text() to .json()
+          return response.json();
         })
         .then(data => {
           console.log('Detail API Response:', data);
           
-          // Transform the JSON data
           const transformedData = {
-            ...job, // Keep original job data as fallback
+            ...job,
             id: data.id?.toString() || job.id,
             title: data.title || job.title,
             company: data.cname || data.companyName || job.company,
@@ -117,7 +93,6 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
     }
   }, [open, job.id]);
 
-  // Use detailed data if available, fallback to basic job data
   const jobData = detailedJob || job;
 
   const handleApply = () => {
@@ -139,122 +114,99 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
     window.open('https://your-ai-interview-link.com', '_blank');
   };
 
-  const getLocationImage = (location: string) => {
-    const locationImages = {
-      'Өвөрхангай': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
-      'Улаанбаатар': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
-      'Дорноговь': 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=400&h=200&fit=crop',
-      'Өмнөговь': 'https://images.unsplash.com/photo-1447958272669-9c562446304f?w=400&h=200&fit=crop',
-    };
-    return locationImages[location as keyof typeof locationImages] || 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=400&h=200&fit=crop';
-  };
-
-  const getCampImages = () => [
-    "https://images.unsplash.com/photo-1500673922987-e212871fec22?w=300&h=200&fit=crop",
-    "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?w=300&h=200&fit=crop"
-  ];
-
-  const getPPEItems = () => [
-    { name: "Каск", icon: "👷" },
-    { name: "Куртик", icon: "🧥" },
-    { name: "Хамгаалалтын хантааз", icon: "🥾" },
-    { name: "Бээлий", icon: "🧤" },
-    { name: "Ажлын гутал", icon: "👞" }
-  ];
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">{jobData.title}</DialogTitle>
+      <DialogContent className="max-w-4xl max-h-[90vh] w-[95vw] sm:w-[90vw] md:w-[80vw] lg:w-[70vw] overflow-hidden">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-lg sm:text-xl md:text-2xl line-clamp-2">{jobData.title}</DialogTitle>
         </DialogHeader>
 
         {isLoading ? (
-          <div className="flex justify-center items-center py-12">
+          <div className="flex justify-center items-center py-8">
             <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Дэлгэрэнгүй мэдээлэл ачааллаж байна...</p>
+              <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto mb-4" />
+              <p className="text-sm text-muted-foreground">Дэлгэрэнгүй мэдээлэл ачааллаж байна...</p>
             </div>
           </div>
         ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-destructive">{error}</p>
+          <div className="text-center py-8">
+            <p className="text-destructive text-sm">{error}</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Job Header Info */}
-            <div className="flex items-start justify-between">
+          <div className="space-y-4 overflow-y-auto max-h-[calc(90vh-8rem)]">
+            {/* Job Header Info - Compact on Mobile */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-primary" />
-                  <span className="font-medium">{jobData.company}</span>
+                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                  <span className="font-medium text-sm sm:text-base">{jobData.company}</span>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {jobData.location}
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="truncate">{jobData.location}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {jobData.roster}
+                    <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span>{jobData.roster}</span>
                   </div>
                   {jobData.salary && (
                     <div className="flex items-center gap-1">
-                      <Banknote className="w-4 h-4" />
-                      {jobData.salary}
+                      <Banknote className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="font-medium text-primary text-xs sm:text-sm">{jobData.salary}</span>
                     </div>
                   )}
                 </div>
-                <Badge variant="secondary">{jobData.profession}</Badge>
+                <Badge variant="secondary" className="text-xs w-fit">{jobData.profession}</Badge>
               </div>
               {jobData.phone && (
-                <div className="flex items-center gap-1">
-                  <Phone className="w-4 h-4" />
-                  <span className="text-sm">{jobData.phone}</span>
+                <div className="flex items-center gap-1 text-xs sm:text-sm">
+                  <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span>{jobData.phone}</span>
                 </div>
               )}
             </div>
 
             <Tabs defaultValue="details" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="details">Дэлгэрэнгүй</TabsTrigger>
-                <TabsTrigger value="camp">Кемп & Хангамж</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 h-8 sm:h-10">
+                <TabsTrigger value="details" className="text-xs sm:text-sm">Дэлгэрэнгүй</TabsTrigger>
+                <TabsTrigger value="camp" className="text-xs sm:text-sm">Кемп & Хангамж</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="space-y-4">
+              <TabsContent value="details" className="space-y-3 sm:space-y-4 mt-3">
                 <div>
-                  <h3 className="font-medium mb-3">Ажлын байршил - {jobData.location}</h3>
+                  <h3 className="font-medium mb-2 text-sm sm:text-base">Ажлын байршил - {jobData.location}</h3>
                   <img 
                     src={getLocationImage(jobData.location)} 
                     alt={`${jobData.location} байршил`}
-                    className="w-full h-64 object-cover rounded-lg"
+                    className="w-full h-32 sm:h-48 md:h-64 object-cover rounded-lg"
                   />
-                  <p className="text-sm text-muted-foreground mt-2 mb-6">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-2 mb-3">
                     {jobData.location} аймгийн уурхайн бүс
                   </p>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <h3 className="font-medium mb-2">Гүйцэтгэх үндсэн үүрэг</h3>
-                    <p className="text-muted-foreground">
+                    <h3 className="font-medium mb-2 text-sm sm:text-base">Гүйцэтгэх үндсэн үүрэг</h3>
+                    <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
                       {jobData.responsibilities}
                     </p>
                   </div>
                   <div>
-                    <h3 className="font-medium mb-2">Ажлын байранд тавигдах шаардлага</h3>
-                    <p className="text-muted-foreground">
+                    <h3 className="font-medium mb-2 text-sm sm:text-base">Ажлын байранд тавигдах шаардлага</h3>
+                    <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
                       {jobData.requirements}
                     </p>
                   </div>
                   {jobData.additionalInfo && (
                     <div>
-                      <h3 className="font-medium mb-2">Нэмэлт мэдээлэл</h3>
-                      <p className="text-muted-foreground">{jobData.additionalInfo}</p>
+                      <h3 className="font-medium mb-2 text-sm sm:text-base">Нэмэлт мэдээлэл</h3>
+                      <p className="text-muted-foreground text-xs sm:text-sm">{jobData.additionalInfo}</p>
                     </div>
                   )}
                   
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
                     <div>
                       <span className="font-medium">Туршлага:</span>
                       <p className="text-muted-foreground">{jobData.experience}</p>
@@ -275,71 +227,58 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
                 </div>
               </TabsContent>
 
-              <TabsContent value="camp" className="space-y-4">
+              <TabsContent value="camp" className="space-y-3 sm:space-y-4 mt-3">
                 <div>
-                  <h3 className="font-medium mb-3 flex items-center gap-2">
-                    <Home className="w-5 h-5" />
+                  <h3 className="font-medium mb-3 flex items-center gap-2 text-sm sm:text-base">
+                    <Home className="w-4 h-4 sm:w-5 sm:h-5" />
                     Кемп мэдээлэл
                   </h3>
                   
                   {jobData.hasCamp ? (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        {getCampImages().map((image, index) => (
-                          <div key={index}>
-                            <img 
-                              src={image} 
-                              alt={`Кемп ${index + 1}`}
-                              className="w-full h-40 object-cover rounded-lg"
-                            />
+                    <div className="space-y-3">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <HardHat className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                          <span className="font-medium text-green-800 text-sm sm:text-base">Кемптэй ажлын байр</span>
+                        </div>
+                        <p className="text-green-700 text-xs sm:text-sm">
+                          Энэ ажлын байр кемп байршилтай тул хоол, унтлагын газар хангагдана.
+                        </p>
+                      </div>
+                      
+                      {jobData.supplies && jobData.supplies.length > 0 && (
+                        <div>
+                          <h4 className="font-medium mb-2 flex items-center gap-2 text-sm sm:text-base">
+                            <Utensils className="w-4 h-4 sm:w-5 sm:h-5" />
+                            Хангамж
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {jobData.supplies.map((supply: any, index: number) => (
+                              <div key={index} className="flex items-center gap-2 text-xs sm:text-sm">
+                                <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                <span>{supply.name || supply}</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                      <div className="mt-4">
-                        <h4 className="font-medium mb-2 flex items-center gap-2">
-                          <Utensils className="w-4 h-4" />
-                          Кемпийн хангамж
-                        </h4>
-                        <ul className="text-sm text-muted-foreground space-y-1">
-                          <li>• Фитнес заалтай</li>
-                          <li>• 3 цагийн хооллолт</li>
-                          <li>• Wi-Fi интернет</li>
-                          <li>• Цэвэрлэгээний үйлчилгээ</li>
-                        </ul>
-                      </div>
-                    </>
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">Энэ ажлын байрт кемп байршил байхгүй</p>
-                      <p className="text-sm text-muted-foreground mt-2">Ажилчид өөрсдийн байранд амьдрах эсвэл тээврээр ажилдаа явах</p>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
+                      <p className="text-gray-600 text-xs sm:text-sm">
+                        Энэ ажлын байрын хувьд кемпын мэдээлэл байхгүй байна.
+                      </p>
                     </div>
                   )}
-                </div>
-
-                <div className="mt-6">
-                  <h3 className="font-medium mb-3 flex items-center gap-2">
-                    <HardHat className="w-5 h-5" />
-                    Хамгаалалтын хэрэгсэл
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {getPPEItems().map((item, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                        <span className="text-2xl">{item.icon}</span>
-                        <span className="text-sm">{item.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-4">
-                    Бүх хамгаалалтын хэрэгслийг компани хангана
-                  </p>
                 </div>
               </TabsContent>
             </Tabs>
 
-            <div className="flex gap-3 pt-4 border-t">
+            {/* Action Buttons - Better Mobile Layout */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 border-t">
               <Button 
                 onClick={handleApply}
-                className="flex-1"
+                className="flex-1 h-10 sm:h-11 text-sm"
                 variant={hasProfile ? "default" : "outline"}
               >
                 {hasProfile ? "Өргөдөл гаргах" : "Бүртгүүлж өргөдөл гаргах"}
@@ -347,7 +286,7 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
               <Button 
                 onClick={handleAIInterview}
                 variant="outline" 
-                className="flex-1"
+                className="flex-1 h-10 sm:h-11 text-sm"
               >
                 AI ярилцлага хийх
               </Button>
