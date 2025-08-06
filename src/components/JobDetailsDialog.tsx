@@ -95,6 +95,15 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
 
   const jobData = detailedJob || job;
 
+  // Debug logging to identify object rendering issues
+  console.log('JobData for rendering:', {
+    responsibilities: typeof jobData.responsibilities,
+    requirements: typeof jobData.requirements,
+    additionalInfo: typeof jobData.additionalInfo,
+    supplies: jobData.supplies,
+    suppliesType: typeof jobData.supplies
+  });
+
   const handleApply = () => {
     if (hasProfile) {
       toast({
@@ -118,7 +127,7 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] w-[95vw] sm:w-[90vw] md:w-[80vw] lg:w-[70vw] overflow-hidden">
         <DialogHeader className="pb-2">
-          <DialogTitle className="text-lg sm:text-xl md:text-2xl line-clamp-2">{jobData.title}</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl md:text-2xl line-clamp-2">{String(jobData.title || 'Тодорхойгүй ажил')}</DialogTitle>
         </DialogHeader>
 
         {isLoading ? (
@@ -139,30 +148,30 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                  <span className="font-medium text-sm sm:text-base">{jobData.company}</span>
+                  <span className="font-medium text-sm sm:text-base">{String(jobData.company || 'Тодорхойгүй компани')}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span className="truncate">{jobData.location}</span>
+                    <span className="truncate">{String(jobData.location || 'Тодорхойгүй')}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span>{jobData.roster}</span>
+                    <span>{String(jobData.roster || 'Стандарт')}</span>
                   </div>
                   {jobData.salary && (
                     <div className="flex items-center gap-1">
                       <Banknote className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="font-medium text-primary text-xs sm:text-sm">{jobData.salary}</span>
+                      <span className="font-medium text-primary text-xs sm:text-sm">{String(jobData.salary)}</span>
                     </div>
                   )}
                 </div>
-                <Badge variant="secondary" className="text-xs w-fit">{jobData.profession}</Badge>
+                <Badge variant="secondary" className="text-xs w-fit">{String(jobData.profession || 'Уурхайчин')}</Badge>
               </div>
               {jobData.phone && (
                 <div className="flex items-center gap-1 text-xs sm:text-sm">
                   <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span>{jobData.phone}</span>
+                  <span>{String(jobData.phone)}</span>
                 </div>
               )}
             </div>
@@ -175,14 +184,14 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
 
               <TabsContent value="details" className="space-y-3 sm:space-y-4 mt-3">
                 <div>
-                  <h3 className="font-medium mb-2 text-sm sm:text-base">Ажлын байршил - {jobData.location}</h3>
+                  <h3 className="font-medium mb-2 text-sm sm:text-base">Ажлын байршил - {String(jobData.location || 'Тодорхойгүй')}</h3>
                   <img 
                     src={getLocationImage(jobData.location)} 
-                    alt={`${jobData.location} байршил`}
+                    alt={`${String(jobData.location || 'Тодорхойгүй')} байршил`}
                     className="w-full h-32 sm:h-48 md:h-64 object-cover rounded-lg"
                   />
                   <p className="text-xs sm:text-sm text-muted-foreground mt-2 mb-3">
-                    {jobData.location} аймгийн уурхайн бүс
+                    {String(jobData.location || 'Тодорхойгүй')} аймгийн уурхайн бүс
                   </p>
                 </div>
 
@@ -190,38 +199,46 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
                   <div>
                     <h3 className="font-medium mb-2 text-sm sm:text-base">Гүйцэтгэх үндсэн үүрэг</h3>
                     <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-                      {jobData.responsibilities}
+                      {typeof jobData.responsibilities === 'string' 
+                        ? jobData.responsibilities 
+                        : 'Дэлгэрэнгүй үүрэг тодорхойлогдоогүй'}
                     </p>
                   </div>
                   <div>
                     <h3 className="font-medium mb-2 text-sm sm:text-base">Ажлын байранд тавигдах шаардлага</h3>
                     <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-                      {jobData.requirements}
+                      {typeof jobData.requirements === 'string' 
+                        ? jobData.requirements 
+                        : 'Шаардлага тодорхойлогдоогүй'}
                     </p>
                   </div>
                   {jobData.additionalInfo && (
                     <div>
                       <h3 className="font-medium mb-2 text-sm sm:text-base">Нэмэлт мэдээлэл</h3>
-                      <p className="text-muted-foreground text-xs sm:text-sm">{jobData.additionalInfo}</p>
+                      <p className="text-muted-foreground text-xs sm:text-sm">
+                        {typeof jobData.additionalInfo === 'string' 
+                          ? jobData.additionalInfo 
+                          : 'Нэмэлт мэдээлэл байхгүй'}
+                      </p>
                     </div>
                   )}
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
                     <div>
                       <span className="font-medium">Туршлага:</span>
-                      <p className="text-muted-foreground">{jobData.experience}</p>
+                      <p className="text-muted-foreground">{String(jobData.experience || 'Тодорхойгүй')}</p>
                     </div>
                     <div>
                       <span className="font-medium">Ажлын нөхцөл:</span>
-                      <p className="text-muted-foreground">{jobData.workCondition}</p>
+                      <p className="text-muted-foreground">{String(jobData.workCondition || 'Тодорхойгүй')}</p>
                     </div>
                     <div>
                       <span className="font-medium">Ажлын цаг:</span>
-                      <p className="text-muted-foreground">{jobData.workType}</p>
+                      <p className="text-muted-foreground">{String(jobData.workType || 'Тодорхойгүй')}</p>
                     </div>
                     <div>
                       <span className="font-medium">Утас:</span>
-                      <p className="text-muted-foreground">{jobData.phone || 'Тодорхойгүй'}</p>
+                      <p className="text-muted-foreground">{String(jobData.phone || 'Тодорхойгүй')}</p>
                     </div>
                   </div>
                 </div>
@@ -253,12 +270,19 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
                             Хангамж
                           </h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {jobData.supplies.map((supply: any, index: number) => (
-                              <div key={index} className="flex items-center gap-2 text-xs sm:text-sm">
-                                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                                <span>{supply.name || supply}</span>
-                              </div>
-                            ))}
+                            {jobData.supplies.map((supply: any, index: number) => {
+                              // Safely extract text from supply object
+                              const supplyText = typeof supply === 'string' 
+                                ? supply 
+                                : supply?.name || supply?.text || supply?.title || 'Хангамж';
+                              
+                              return (
+                                <div key={index} className="flex items-center gap-2 text-xs sm:text-sm">
+                                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                  <span>{supplyText}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
