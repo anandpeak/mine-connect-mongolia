@@ -26,10 +26,20 @@ const Header = () => {
 
   const handleProfileClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    setShowAuthDialog(true);
-    setStep('phone');
-    setPhoneNumber('');
-    setOtpCode('');
+    
+    // Check if user is already authenticated
+    const isAuthenticated = localStorage.getItem('userAuthenticated') === 'true';
+    
+    if (isAuthenticated) {
+      // User is already logged in, go directly to profile
+      navigate('/profile');
+    } else {
+      // Show authentication dialog
+      setShowAuthDialog(true);
+      setStep('phone');
+      setPhoneNumber('');
+      setOtpCode('');
+    }
   };
 
   const handlePhoneSubmit = async () => {
@@ -96,6 +106,10 @@ const Header = () => {
         setTimeout(() => {
           setIsLoading(false);
           setShowAuthDialog(false);
+          // Store authentication state
+          localStorage.setItem('userAuthenticated', 'true');
+          localStorage.setItem('userPhone', phoneNumber);
+          localStorage.setItem('userExists', 'true');
           navigate('/profile');
           toast({
             title: "Амжилттай нэвтэрлээ",
@@ -109,12 +123,15 @@ const Header = () => {
       setTimeout(() => {
         setIsLoading(false);
         
-        // Simulate random user existence (50% chance for demo)
-        const userExists = Math.random() > 0.5;
+        // Simulate random user existence (70% chance for demo)
+        const userExists = Math.random() > 0.3;
         
         if (userExists) {
           // User exists, go to profile page
           setShowAuthDialog(false);
+          localStorage.setItem('userAuthenticated', 'true');
+          localStorage.setItem('userPhone', phoneNumber);
+          localStorage.setItem('userExists', 'true');
           navigate('/profile');
           toast({
             title: "Амжилттай нэвтэрлээ",
@@ -123,7 +140,8 @@ const Header = () => {
         } else {
           // User doesn't exist, redirect to registration
           setShowAuthDialog(false);
-          window.open('https://burtgel.uurkhaichin.mn', '_blank');
+          localStorage.setItem('userExists', 'false');
+          window.open('https://burtgel.uurkhaichin.mn/home', '_blank');
           toast({
             title: "Анкет олдсонгүй",
             description: "Бүртгэл үүсгэхийн тулд burtgel.uurkhaichin.mn сайтад очоо уу",
@@ -140,6 +158,19 @@ const Header = () => {
       });
     }
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('userAuthenticated');
+    localStorage.removeItem('userPhone');
+    localStorage.removeItem('userExists');
+    navigate('/');
+    toast({
+      title: "Гарлаа",
+      description: "Амжилттай гарлаа",
+    });
+  };
+
+  const isAuthenticated = localStorage.getItem('userAuthenticated') === 'true';
 
   return (
     <>
@@ -180,7 +211,7 @@ const Header = () => {
             </Link>
 
             {/* Navigation */}
-            <nav className="flex space-x-6">
+            <nav className="flex items-center space-x-6">
               {navItems.map((item) => {
                 if (item.requiresAuth) {
                   return (
@@ -189,7 +220,9 @@ const Header = () => {
                       onClick={handleProfileClick}
                       className={cn(
                         "px-3 py-2 text-sm font-medium transition-colors hover:text-primary",
-                        "text-muted-foreground"
+                        location.pathname === '/profile'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground"
                       )}
                     >
                       {item.label}
@@ -212,6 +245,16 @@ const Header = () => {
                   </Link>
                 );
               })}
+              
+              {/* Show logout button if authenticated */}
+              {isAuthenticated && (
+                <button
+                  onClick={handleLogout}
+                  className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
+                >
+                  Гарах
+                </button>
+              )}
             </nav>
           </div>
         </div>
