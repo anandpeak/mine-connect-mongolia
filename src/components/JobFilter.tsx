@@ -12,7 +12,7 @@ interface JobFilterProps {
     profession: string;
     location: string;
     workType: string;
-    sortBy: string; // New sort filter
+    sortBy: string;
   };
   onFilterChange: (key: string, value: string) => void;
   onClearFilters: () => void;
@@ -143,7 +143,7 @@ const JobFilter = ({ filters, onFilterChange, onClearFilters }: JobFilterProps) 
           </SelectContent>
         </Select>
 
-        {/* Sort By Filter - NEW */}
+        {/* Simplified Sort By Filter - Only 2 Options */}
         <div className="flex gap-2">
           <Select value={filters.sortBy} onValueChange={(value) => onFilterChange("sortBy", value)}>
             <SelectTrigger>
@@ -151,11 +151,8 @@ const JobFilter = ({ filters, onFilterChange, onClearFilters }: JobFilterProps) 
               <ArrowUpDown className="w-4 h-4 ml-2" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Шинэ эхэндээ</SelectItem>
-              <SelectItem value="oldest">Хуучин эхэндээ</SelectItem>
-              <SelectItem value="salary-high">Цалин өндрөөс доош</SelectItem>
-              <SelectItem value="salary-low">Цалин доороос дээш</SelectItem>
-              <SelectItem value="company">Компаниар</SelectItem>
+              <SelectItem value="newest">Шинэ ажлын байр эхэндээ</SelectItem>
+              <SelectItem value="salary-high">Өндөр цалинтай эхэндээ</SelectItem>
             </SelectContent>
           </Select>
           
@@ -226,12 +223,7 @@ const JobFilter = ({ filters, onFilterChange, onClearFilters }: JobFilterProps) 
             )}
             {filters.sortBy !== 'newest' && (
               <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                Эрэмбэ: {
-                  filters.sortBy === 'oldest' ? 'Хуучин эхэндээ' :
-                  filters.sortBy === 'salary-high' ? 'Цалин өндрөөс доош' :
-                  filters.sortBy === 'salary-low' ? 'Цалин доороос дээш' :
-                  filters.sortBy === 'company' ? 'Компаниар' : filters.sortBy
-                }
+                Эрэмбэ: {filters.sortBy === 'salary-high' ? 'Өндөр цалинтай эхэндээ' : 'Шинэ ажлын байр эхэндээ'}
                 <button 
                   onClick={() => onFilterChange("sortBy", "newest")}
                   className="hover:bg-primary/20 rounded-full p-0.5"
