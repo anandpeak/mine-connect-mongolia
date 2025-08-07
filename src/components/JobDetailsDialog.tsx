@@ -46,53 +46,56 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
 
   // Get aimag map image based on location
   const getAimagMap = (location: string): string => {
-    if (!location) return '/map-mongolia.html';
+    if (!location) return '/map-mongolia.svg';
     
-    // Mapping from aimag names to map file names (using .html extension as per your files)
+    // Mapping from aimag names to map file names (SVG files)
     const aimagMappings: { [key: string]: string } = {
-      // Main aimags
-      'Архангай': '/map-arkhangai.html',
-      'Баян-Өлгий': '/map-bayn-ulgii.html', 
-      'Баянхонгор': '/map-baynkhongor.html',
-      'Булган': '/map-bulgan.html',
-      'Говь-Алтай': '/map-govi-altai.html',
-      'Говьсүмбэр': '/map-govisumber-altai.html',
-      'Дархан-Уул': '/map-darkhan-uul.html',
-      'Дорноговь': '/map-dornogovi.html',
-      'Дорнод': '/map-dornod.html',
-      'Дундговь': '/map-dundgovi.html',
-      'Завхан': '/map-zavkhan.html',
-      'Орхон': '/map-orkhon.html',
-      'Өвөрхангай': '/map-uvurkhangai.html',
-      'Өмнөговь': '/map-umnugovi.html',
-      'Сүхбаатар': '/map-sukhbaatar.html',
-      'Сэлэнгэ': '/map-selenge.html',
-      'Төв': '/map-tuv.html',
-      'Увс': '/map-uvs.html',
-      'Ховд': '/map-khovd.html',
-      'Хөвсгөл': '/map-khuvsgul.html',
-      'Хэнтий': '/map-khentii.html',
-      'Улаанбаатар': '/map-ulaanbaatar.html',
+      // Main aimags - using exact filenames from your public folder
+      'Архангай': '/map-arkhangai.svg',
+      'Баян-Өлгий': '/map-bayn-ulgii.svg', 
+      'Баянхонгор': '/map-baynkhongor.svg',
+      'Булган': '/map-bulgan.svg',
+      'Говь-Алтай': '/map-govi-altai.svg',
+      'Говьсүмбэр': '/map-govisumber-altai.svg',
+      'Дархан-Уул': '/map-darkhan-uul.svg',
+      'Дорноговь': '/map-dornogovi.svg',
+      'Дорнод': '/map-dornod.svg',
+      'Дундговь': '/map-dundgovi.svg',
+      'Завхан': '/map-zavkhan.svg',
+      'Орхон': '/map-orkhon.svg',
+      'Өвөрхангай': '/map-uvurkhangai.svg',
+      'Өмнөговь': '/map-umnugovi.svg',
+      'Сүхбаатар': '/map-sukhbaatar.svg',
+      'Сэлэнгэ': '/map-selenge.svg',
+      'Төв': '/map-tuv.svg',
+      'Увс': '/map-uvs.svg',
+      'Ховд': '/map-khovd.svg',
+      'Хөвсгөл': '/map-khuvsgul.svg',
+      'Хэнтий': '/map-khentii.svg',
+      'Улаанбаатар': '/map-ulaanbaatar.svg',
       
       // Alternative spellings that might come from API
-      'Ulaanbaatar': '/map-ulaanbaatar.html',
-      'Darkhan-Uul': '/map-darkhan-uul.html',
-      'Govi-Altai': '/map-govi-altai.html',
-      'Govisumber': '/map-govisumber-altai.html',
-      'Khentii': '/map-khentii.html',
-      'Khovd': '/map-khovd.html',
-      'Khuvsgul': '/map-khuvsgul.html',
-      'Orkhon': '/map-orkhon.html',
-      'Selenge': '/map-selenge.html',
-      'Sukhbaatar': '/map-sukhbaatar.html',
-      'Tuv': '/map-tuv.html',
-      'Uvurkhangai': '/map-uvurkhangai.html',
-      'Uvs': '/map-uvs.html',
-      'Zavkhan': '/map-zavkhan.html'
+      'Ulaanbaatar': '/map-ulaanbaatar.svg',
+      'Darkhan-Uul': '/map-darkhan-uul.svg',
+      'Govi-Altai': '/map-govi-altai.svg',
+      'Govisumber': '/map-govisumber-altai.svg',
+      'Khentii': '/map-khentii.svg',
+      'Khovd': '/map-khovd.svg',
+      'Khuvsgul': '/map-khuvsgul.svg',
+      'Orkhon': '/map-orkhon.svg',
+      'Selenge': '/map-selenge.svg',
+      'Sukhbaatar': '/map-sukhbaatar.svg',
+      'Tuv': '/map-tuv.svg',
+      'Uvurkhangai': '/map-uvurkhangai.svg',
+      'Uvs': '/map-uvs.svg',
+      'Zavkhan': '/map-zavkhan.svg'
     };
+
+    console.log('Looking for map for location:', location);
 
     // Try exact match first
     if (aimagMappings[location]) {
+      console.log('Found exact match:', aimagMappings[location]);
       return aimagMappings[location];
     }
 
@@ -100,12 +103,14 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
     const locationLower = location.toLowerCase();
     for (const [key, value] of Object.entries(aimagMappings)) {
       if (key.toLowerCase().includes(locationLower) || locationLower.includes(key.toLowerCase())) {
+        console.log('Found partial match:', value, 'for key:', key);
         return value;
       }
     }
 
+    console.log('No match found, using default map');
     // Default to general Mongolia map
-    return '/map-mongolia.html';
+    return '/map-mongolia.svg';
   };
 
   // Get location image (fallback for general mining images)
