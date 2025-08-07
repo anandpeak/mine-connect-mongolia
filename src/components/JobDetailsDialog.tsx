@@ -44,9 +44,73 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
     return html.replace(/<[^>]*>/g, '').trim();
   };
 
-  // Get location image
+  // Get aimag map image based on location
+  const getAimagMap = (location: string): string => {
+    if (!location) return '/map-mongolia.html';
+    
+    // Mapping from aimag names to map file names (using .html extension as per your files)
+    const aimagMappings: { [key: string]: string } = {
+      // Main aimags
+      'Архангай': '/map-arkhangai.html',
+      'Баян-Өлгий': '/map-bayn-ulgii.html', 
+      'Баянхонгор': '/map-baynkhongor.html',
+      'Булган': '/map-bulgan.html',
+      'Говь-Алтай': '/map-govi-altai.html',
+      'Говьсүмбэр': '/map-govisumber-altai.html',
+      'Дархан-Уул': '/map-darkhan-uul.html',
+      'Дорноговь': '/map-dornogovi.html',
+      'Дорнод': '/map-dornod.html',
+      'Дундговь': '/map-dundgovi.html',
+      'Завхан': '/map-zavkhan.html',
+      'Орхон': '/map-orkhon.html',
+      'Өвөрхангай': '/map-uvurkhangai.html',
+      'Өмнөговь': '/map-umnugovi.html',
+      'Сүхбаатар': '/map-sukhbaatar.html',
+      'Сэлэнгэ': '/map-selenge.html',
+      'Төв': '/map-tuv.html',
+      'Увс': '/map-uvs.html',
+      'Ховд': '/map-khovd.html',
+      'Хөвсгөл': '/map-khuvsgul.html',
+      'Хэнтий': '/map-khentii.html',
+      'Улаанбаатар': '/map-ulaanbaatar.html',
+      
+      // Alternative spellings that might come from API
+      'Ulaanbaatar': '/map-ulaanbaatar.html',
+      'Darkhan-Uul': '/map-darkhan-uul.html',
+      'Govi-Altai': '/map-govi-altai.html',
+      'Govisumber': '/map-govisumber-altai.html',
+      'Khentii': '/map-khentii.html',
+      'Khovd': '/map-khovd.html',
+      'Khuvsgul': '/map-khuvsgul.html',
+      'Orkhon': '/map-orkhon.html',
+      'Selenge': '/map-selenge.html',
+      'Sukhbaatar': '/map-sukhbaatar.html',
+      'Tuv': '/map-tuv.html',
+      'Uvurkhangai': '/map-uvurkhangai.html',
+      'Uvs': '/map-uvs.html',
+      'Zavkhan': '/map-zavkhan.html'
+    };
+
+    // Try exact match first
+    if (aimagMappings[location]) {
+      return aimagMappings[location];
+    }
+
+    // Try partial match (case insensitive)
+    const locationLower = location.toLowerCase();
+    for (const [key, value] of Object.entries(aimagMappings)) {
+      if (key.toLowerCase().includes(locationLower) || locationLower.includes(key.toLowerCase())) {
+        return value;
+      }
+    }
+
+    // Default to general Mongolia map
+    return '/map-mongolia.html';
+  };
+
+  // Get location image (fallback for general mining images)
   const getLocationImage = (location: string) => {
-    // Default mining landscape image
+    // Default mining landscape image as fallback
     return "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=400&fit=crop&crop=center";
   };
 
@@ -101,7 +165,8 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
     requirements: typeof jobData.requirements,
     additionalInfo: typeof jobData.additionalInfo,
     supplies: jobData.supplies,
-    suppliesType: typeof jobData.supplies
+    suppliesType: typeof jobData.supplies,
+    location: jobData.location
   });
 
   const handleApply = () => {
@@ -138,58 +203,110 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
             </div>
           </div>
         ) : error ? (
-          <div className="text-center py-8">
-            <p className="text-destructive text-sm">{error}</p>
+          <div className="flex justify-center items-center py-8">
+            <div className="text-center">
+              <p className="text-red-500 mb-4">{error}</p>
+              <Button onClick={() => onOpenChange(false)} variant="outline">
+                Хаах
+              </Button>
+            </div>
           </div>
         ) : (
-          <div className="space-y-4 overflow-y-auto max-h-[calc(90vh-8rem)]">
-            {/* Job Header Info - Compact on Mobile */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                  <span className="font-medium text-sm sm:text-base">{String(jobData.company || 'Тодорхойгүй компани')}</span>
+          <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
+            {/* Company and Basic Info */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <div className="flex items-center gap-3">
+                {/* Company Logo */}
+                <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white border border-gray-200 rounded">
+                  {jobData.cphotoUrl || jobData._raw?.cphotoUrl ? (
+                    <img 
+                      src={jobData.cphotoUrl || jobData._raw?.cphotoUrl}
+                      alt={`${jobData.company} logo`}
+                      className="w-full h-full object-contain rounded"
+                      onError={(e) => {
+                        console.error('Company logo failed to load');
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                      }}
+                      onLoad={() => console.log('Company logo loaded for:', jobData.company)}
+                    />
+                  ) : null}
+                  <Building2 className={`w-6 h-6 sm:w-8 sm:h-8 text-primary ${(jobData.cphotoUrl || jobData._raw?.cphotoUrl) ? 'hidden' : ''}`} />
                 </div>
-                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span className="truncate">{String(jobData.location || 'Тодорхойгүй')}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span>{String(jobData.roster || 'Стандарт')}</span>
-                  </div>
-                  {jobData.salary && (
+                <div>
+                  <h3 className="font-semibold text-base sm:text-lg">{String(jobData.company || 'Тодорхойгүй компани')}</h3>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <Banknote className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="font-medium text-primary text-xs sm:text-sm">{String(jobData.salary)}</span>
+                      <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span>{String(jobData.location || 'Тодорхойгүй')}</span>
                     </div>
-                  )}
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span>{String(jobData.workType || 'Бүтэн цаг')}</span>
+                    </div>
+                    {jobData.salary && (
+                      <div className="flex items-center gap-1">
+                        <Banknote className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span>{String(jobData.salary)}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <Badge variant="secondary" className="text-xs w-fit">{String(jobData.profession || 'Уурхайчин')}</Badge>
               </div>
+
+              {/* Contact Info */}
               {jobData.phone && (
-                <div className="flex items-center gap-1 text-xs sm:text-sm">
-                  <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span>{String(jobData.phone)}</span>
+                <div className="flex items-center gap-2 bg-secondary p-2 sm:p-3 rounded-lg">
+                  <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                  <span className="text-sm sm:text-base font-medium">{String(jobData.phone)}</span>
                 </div>
               )}
             </div>
 
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
+              <Badge variant="secondary" className="text-xs sm:text-sm">
+                {String(jobData.profession || 'Ерөнхий ажилтан')}
+              </Badge>
+              <Badge variant="outline" className="text-xs sm:text-sm">
+                {String(jobData.experience || 'Туршлага шаардахгүй')}
+              </Badge>
+              <Badge variant="outline" className="text-xs sm:text-sm">
+                {String(jobData.roster || 'Стандарт цагийн хуваарь')}
+              </Badge>
+              {jobData.hasCamp && (
+                <Badge variant="outline" className="text-xs sm:text-sm">
+                  <Home className="w-3 h-3 mr-1" />
+                  Кемптэй
+                </Badge>
+              )}
+            </div>
+
+            {/* Tabs */}
             <Tabs defaultValue="details" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 h-8 sm:h-10">
-                <TabsTrigger value="details" className="text-xs sm:text-sm">Дэлгэрэнгүй</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 h-auto">
+                <TabsTrigger value="details" className="text-xs sm:text-sm">Дэлгэрэнгүй мэдээлэл</TabsTrigger>
                 <TabsTrigger value="camp" className="text-xs sm:text-sm">Кемп & Хангамж</TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="space-y-3 sm:space-y-4 mt-3">
                 <div>
                   <h3 className="font-medium mb-2 text-sm sm:text-base">Ажлын байршил - {String(jobData.location || 'Тодорхойгүй')}</h3>
-                  <img 
-                    src={getLocationImage(jobData.location)} 
-                    alt={`${String(jobData.location || 'Тодорхойгүй')} байршил`}
-                    className="w-full h-32 sm:h-48 md:h-64 object-cover rounded-lg"
-                  />
+                  
+                  {/* Display the aimag map as image instead of iframe */}
+                  <div className="w-full h-48 sm:h-64 md:h-80 border rounded-lg overflow-hidden bg-gray-50">
+                    <img 
+                      src={getAimagMap(jobData.location)}
+                      alt={`${String(jobData.location || 'Тодорхойгүй')} аймгийн газрын зураг`}
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        console.error('Map failed to load, falling back to default image');
+                        (e.target as HTMLImageElement).src = getLocationImage(jobData.location);
+                      }}
+                      onLoad={() => console.log('Map loaded successfully for:', jobData.location)}
+                    />
+                  </div>
+                  
                   <p className="text-xs sm:text-sm text-muted-foreground mt-2 mb-3">
                     {String(jobData.location || 'Тодорхойгүй')} аймгийн уурхайн бүс
                   </p>
@@ -218,48 +335,24 @@ const JobDetailsDialog = ({ job, open, onOpenChange }: JobDetailsDialogProps) =>
                       <p className="text-muted-foreground text-xs sm:text-sm">
                         {typeof jobData.additionalInfo === 'string' 
                           ? jobData.additionalInfo 
-                          : 'Нэмэлт мэдээлэл байхгүй'}
+                          : String(jobData.additionalInfo || '')}
                       </p>
                     </div>
                   )}
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-                    <div>
-                      <span className="font-medium">Туршлага:</span>
-                      <p className="text-muted-foreground">{String(jobData.experience || 'Тодорхойгүй')}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Ажлын нөхцөл:</span>
-                      <p className="text-muted-foreground">{String(jobData.workCondition || 'Тодорхойгүй')}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Ажлын цаг:</span>
-                      <p className="text-muted-foreground">{String(jobData.workType || 'Тодорхойгүй')}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Утас:</span>
-                      <p className="text-muted-foreground">{String(jobData.phone || 'Тодорхойгүй')}</p>
-                    </div>
-                  </div>
                 </div>
               </TabsContent>
 
               <TabsContent value="camp" className="space-y-3 sm:space-y-4 mt-3">
                 <div>
-                  <h3 className="font-medium mb-3 flex items-center gap-2 text-sm sm:text-base">
-                    <Home className="w-4 h-4 sm:w-5 sm:h-5" />
-                    Кемп мэдээлэл
-                  </h3>
-                  
                   {jobData.hasCamp ? (
-                    <div className="space-y-3">
+                    <div className="space-y-3 sm:space-y-4">
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <HardHat className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                          <span className="font-medium text-green-800 text-sm sm:text-base">Кемптэй ажлын байр</span>
-                        </div>
+                        <h4 className="font-medium mb-2 flex items-center gap-2 text-sm sm:text-base">
+                          <Home className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                          Кемп байршилтай
+                        </h4>
                         <p className="text-green-700 text-xs sm:text-sm">
-                          Энэ ажлын байр кемп байршилтай тул хоол, унтлагын газар хангагдана.
+                          Энэ ажлын байр кемп байршилтай тул хоол хүнс, байр орон хангагдана.
                         </p>
                       </div>
                       
